@@ -1,0 +1,12 @@
+CLAUDE.md
+.cache/
+.vscode/
+.idea/
+*.log
+*.tmp
+*.bak
+*.swp
+.DS_Store
+
+build/
+tmp/
