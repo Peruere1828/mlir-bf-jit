@@ -5,4 +5,16 @@
 #include "mlir/IR/OwningOpRef.h"
 #include "llvm/Support/SourceMgr.h"
 
+namespace mlir {
+namespace bf {
+
+/// Parse a Brainfuck source file into an MLIR module.
+/// The returned module contains a single func.func @main() -> i32
+/// with BF dialect ops in its body.
+OwningOpRef<ModuleOp> parseBFSource(MLIRContext *context,
+                                    llvm::SourceMgr &sourceMgr);
+
+} // namespace bf
+} // namespace mlir
+
 #endif
