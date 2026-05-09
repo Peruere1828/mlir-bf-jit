@@ -4,6 +4,9 @@
 #include "Bf/Dialect/Bf/IR/BfDialect.h"
 
 #include "mlir/Bytecode/BytecodeOpInterface.h"
+#include "Bf/Dialect/Bf/IR/BfDialect.h"
+
+#include "mlir/Bytecode/BytecodeOpInterface.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/OpDefinition.h"
@@ -12,7 +15,7 @@
 
 //===----------------------------------------------------------------------===//
 // Generated op class declarations:
-//   AddPtrOp, AddValOp, PutCharOp, GetCharOp, LoopOp
+//   LeftOp, RightOp, AddOp, SubOp
 //===----------------------------------------------------------------------===//
 
 #define GET_OP_CLASSES

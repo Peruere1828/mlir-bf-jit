@@ -3,7 +3,7 @@
 
 include "mlir/IR/DialectBase.td"
 
-def BfDialect : Dialect {
+def Bf_Dialect : Dialect {
   let name = "bf";
   
   let summary = "The Bf dialect";
