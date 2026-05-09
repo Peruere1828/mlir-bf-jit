@@ -1,4 +1,3 @@
-#include "Bf/Dialect/Bf/IR/BfDialect.h"
 #include "Bf/Parser/Parser.h"
 
 #include "mlir/IR/AsmState.h"
@@ -11,6 +10,7 @@
 #include "llvm/Support/SMLoc.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/raw_ostream.h"
+
 #include <string>
 
 namespace cl = llvm::cl;

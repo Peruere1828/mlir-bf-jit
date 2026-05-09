@@ -61,9 +61,11 @@ OwningOpRef<ModuleOp> mlir::bf::parseBFSource(MLIRContext *context,
       break;
     case '.':
       // Output the byte at the data pointer
+      builder.create<bf::WriteOp>(loc);
       break;
-    case ',':
+      case ',':
       // Input a byte and store it at the data pointer
+      builder.create<bf::ReadOp>(loc);
       break;
     case '[':
       // Start of a loop - create a new block for the loop body

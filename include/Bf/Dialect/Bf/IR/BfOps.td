@@ -45,7 +45,15 @@ def Bf_SubOp : Bf_Op<"sub"> {
 // I/O — NOT Pure: observable external side effects
 //===----------------------------------------------------------------------===//
 
+def Bf_ReadOp : Bf_Op<"read"> {
+  let summary = "Brainfuck ',' operation";
+  let assemblyFormat = "attr-dict";
+}
 
+def Bf_WriteOp : Bf_Op<"write"> {
+  let summary = "Brainfuck '.' operation";
+  let assemblyFormat = "attr-dict";
+}
 
 //===----------------------------------------------------------------------===//
 // Control flow
