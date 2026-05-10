@@ -1,10 +1,9 @@
 set(LIBS
   MLIRIR
   MLIROptLib
-
-  # MLIRBfDialect
-  # MLIRBfTransforms
-  # MLIRBfConversion
+  MLIRBfDialect
+  MLIRBfParser
+  MLIRBfTransforms
 )
 
 add_llvm_executable(bf-opt bf-opt.cpp)
