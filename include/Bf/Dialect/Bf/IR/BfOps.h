@@ -3,14 +3,16 @@
 
 #include "Bf/Dialect/Bf/IR/BfDialect.h"
 
-#include "mlir/Bytecode/BytecodeOpInterface.h"
 #include "Bf/Dialect/Bf/IR/BfDialect.h"
-
 #include "mlir/Bytecode/BytecodeOpInterface.h"
+
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/OpImplementation.h"
+#include "mlir/Interfaces/ControlFlowInterfaces.h"
+#include "mlir/Interfaces/InferTypeOpInterface.h"
+#include "mlir/Interfaces/LoopLikeInterface.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 
 //===----------------------------------------------------------------------===//
