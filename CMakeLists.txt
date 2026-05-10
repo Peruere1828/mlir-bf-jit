@@ -55,7 +55,4 @@ add_subdirectory(lib)
 # 注册核心工具
 add_subdirectory(tools)
 
-if(MLIR_INCLUDE_TESTS)
-  # 测试目录我们稍后再弄，先注释掉或者保留一个空的
-  # add_subdirectory(test)
-endif()
+add_subdirectory(test)
