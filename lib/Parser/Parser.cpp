@@ -45,11 +45,9 @@ OwningOpRef<ModuleOp> mlir::bf::parseBFSource(MLIRContext *context,
 
   auto indexType = builder.getIndexType();
   auto currentPtr = builder.create<arith::ConstantIndexOp>(loc, 0).getResult();
-  auto stepOneAttr = builder.getI32IntegerAttr(1);
 
   for (size_t i = 0; i < source.size(); ++i) {
     if (i + 1 < source.size() && source.substr(i, 2) == "//") {
-      // 把 // 视为注释，方便 lit 测试
       while (i < source.size() && source[i] != '\n') {
         i++;
       }
@@ -58,24 +56,18 @@ OwningOpRef<ModuleOp> mlir::bf::parseBFSource(MLIRContext *context,
     char ch = source[i];
     switch (ch) {
     case '>':
-      // Increment the data pointer
       currentPtr =
-          builder.create<bf::RightOp>(loc, indexType, currentPtr, stepOneAttr)
-              .getResult();
+          builder.create<bf::RightOp>(loc, indexType, currentPtr).getResult();
       break;
     case '<':
-      // Decrement the data pointer
       currentPtr =
-          builder.create<bf::LeftOp>(loc, indexType, currentPtr, stepOneAttr)
-              .getResult();
+          builder.create<bf::LeftOp>(loc, indexType, currentPtr).getResult();
       break;
     case '+':
-      // Increment the byte at the data pointer
-      builder.create<bf::AddOp>(loc, currentPtr, stepOneAttr);
+      builder.create<bf::AddOp>(loc, currentPtr);
       break;
     case '-':
-      // Decrement the byte at the data pointer
-      builder.create<bf::SubOp>(loc, currentPtr, stepOneAttr);
+      builder.create<bf::SubOp>(loc, currentPtr);
       break;
     case '.':
       // Output the byte at the data pointer
