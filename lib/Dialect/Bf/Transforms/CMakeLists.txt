@@ -1,5 +1,6 @@
 add_mlir_dialect_library(MLIRBfTransforms
   BfCombine.cpp
+  BfRaiseToClear.cpp
 
   DEPENDS
   MLIRBfPassIncGen

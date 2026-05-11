@@ -130,6 +130,7 @@ struct MergeConsecutiveModifies : public OpRewritePattern<bf::ModifyOp> {
   }
 };
 
+// 必须优先把所有的 left/right/add/sub 提升为 shift/modify 后，后续的 pass 才能生效
 struct BfCombinePass : public impl::BfCombineBase<BfCombinePass> {
   void runOnOperation() override {
     auto func = getOperation();
