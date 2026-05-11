@@ -5,6 +5,7 @@ set(LIBS
   MLIRBfDialect
   MLIRBfParser
   MLIRBfTransforms
+  MLIRTransforms
 )
 
 add_llvm_executable(bf-opt bf-opt.cpp)

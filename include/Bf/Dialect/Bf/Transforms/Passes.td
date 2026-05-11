@@ -11,4 +11,8 @@ def BfCombine : Pass<"bf-combine", "func::FuncOp"> {
   let dependentDialects = ["mlir::bf::BfDialect"];
 }
 
+// def BfRaiseToClear : Pass<"bf-raise-to-clear", "func::FuncOp"> {
+//  let summary = "Raise `loop modify -1` to bf.clear";
+// }
+
 #endif

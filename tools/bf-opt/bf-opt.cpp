@@ -4,6 +4,7 @@
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Dialect.h"
+#include "mlir/Transforms/Passes.h"
 #include "mlir/Tools/mlir-opt/MlirOptMain.h"
 
 namespace mlir {
@@ -14,12 +15,13 @@ namespace bf {
 } // namespace mlir
 
 int main(int argc, char **argv) {
-  mlir::bf::registerBfPasses();
-
   mlir::DialectRegistry registry;
   registry.insert<mlir::arith::ArithDialect>();
   registry.insert<mlir::bf::BfDialect>();
   registry.insert<mlir::func::FuncDialect>();
+
+  mlir::bf::registerBfPasses();
+  mlir::registerTransformsPasses();
 
   return mlir::asMainReturnCode(
       mlir::MlirOptMain(argc, argv, "BF Optimizer\n", registry));

@@ -89,12 +89,16 @@ def Bf_ShiftOp : Bf_Op<"shift"> {
   let arguments = (ins Index:$ptr, I32Attr:$offset);
   let results = (outs Index:$res);
   let assemblyFormat = [{ $ptr `,` $offset attr-dict `:` type($ptr) `->` type($res) }];
+
+  let hasFolder = 1;
 }
 
 def Bf_ModifyOp : Bf_Op<"modify"> {
   let summary = "Cumulative cell modification (positive = add, negative = sub)";
   let arguments = (ins Index:$ptr, I32Attr:$delta);
   let assemblyFormat = [{ $ptr `,` $delta attr-dict `:` type($ptr) }];
+
+  let hasCanonicalizer = 1;
 }
 
 def Bf_ClearOp : Bf_Op<"clear"> {
