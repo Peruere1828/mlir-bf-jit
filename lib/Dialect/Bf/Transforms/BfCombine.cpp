@@ -149,9 +149,5 @@ struct BfCombinePass : public impl::BfCombineBase<BfCombinePass> {
 
 } // namespace
 
-std::unique_ptr<OperationPass<func::FuncOp>> createBfCombinePass() {
-  return std::make_unique<BfCombinePass>();
-}
-
 } // namespace bf
 } // namespace mlir

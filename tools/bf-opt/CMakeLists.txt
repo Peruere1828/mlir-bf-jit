@@ -1,6 +1,7 @@
 set(LIBS
   MLIRIR
   MLIROptLib
+  MLIRArithDialect
   MLIRBfDialect
   MLIRBfParser
   MLIRBfTransforms
