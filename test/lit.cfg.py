@@ -7,7 +7,7 @@ from lit.llvm.subst import ToolSubst
 
 config.name = "bf-jit"
 config.test_format = lit.formats.ShTest(not llvm_config.use_lit_shell)
-config.suffixes = [".bf"]
+config.suffixes = [".bf", ".mlir"]
 config.test_source_root = os.path.dirname(__file__)
 config.test_exec_root = os.path.join(config.bf_obj_root, "test")
 

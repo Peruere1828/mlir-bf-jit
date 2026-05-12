@@ -105,18 +105,8 @@ def Bf_ClearOp : Bf_Op<"clear"> {
   let summary = "Set cell to zero — equivalent to [-]";
   let arguments = (ins Index:$ptr);
   let assemblyFormat = [{ $ptr attr-dict `:` type($ptr) }];
-}
 
-def Bf_MoveAddOp : Bf_Op<"move_add"> {
-  let summary = "tape[ptr + offset] += tape[ptr]; tape[ptr] = 0";
-  let arguments = (ins Index:$ptr, I32Attr:$offset);
-  let assemblyFormat = [{ $ptr `,` $offset attr-dict `:` type($ptr) }];
-}
-
-def Bf_MulAddOp : Bf_Op<"mul_add"> {
-  let summary = "tape[ptr + offset] += tape[ptr] * multiplier; tape[ptr] = 0";
-  let arguments = (ins Index:$ptr, I32Attr:$offset, I32Attr:$multiplier);
-  let assemblyFormat = [{ $ptr `,` $offset `,` $multiplier attr-dict `:` type($ptr) }];
+  let hasCanonicalizer = 1;
 }
 
 #endif // BF_OPS
