@@ -5,6 +5,7 @@ set(LIBS
   MLIRBfDialect
   MLIRBfParser
   MLIRBfTransforms
+  MLIRBfToAffine
   MLIRTransforms
 )
 
