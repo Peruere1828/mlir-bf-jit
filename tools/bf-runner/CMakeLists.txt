@@ -20,6 +20,7 @@ set(LIBS
   MLIRFuncToLLVM
   MLIRMemRefToLLVM
   MLIRLLVMToLLVMIRTranslation
+  MLIRReconcileUnrealizedCasts
 )
 
 add_llvm_executable(bf-runner bf-runner.cpp)

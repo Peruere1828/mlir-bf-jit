@@ -116,6 +116,7 @@ int main(int argc, char **argv) {
   pm.addPass(createConvertFuncToLLVMPass());
   pm.addPass(createArithToLLVMConversionPass());
   pm.addPass(createFinalizeMemRefToLLVMConversionPass());
+  pm.addPass(createReconcileUnrealizedCastsPass());
 
   if (failed(pm.run(*module))) {
     llvm::errs() << "Error optimizing source file: " << inputFilename << "\n";
