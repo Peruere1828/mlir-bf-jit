@@ -35,6 +35,7 @@ int main(int argc, char **argv) {
   registry.insert<mlir::scf::SCFDialect>();
 
   mlir::bf::registerBfPasses();
+  mlir::bf::registerBfConversionPasses();
   mlir::registerTransformsPasses();
 
   return mlir::asMainReturnCode(
