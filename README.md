@@ -5,7 +5,8 @@ based on LLVM 20.1.8
 tools:
 
 - `bf-translate`: read a `.bf` file and translate it into bf dialect
-- `bf-opt`: read a bf `.mlir` file and optimize it
+- `bf-opt`: read a bf dialect `.mlir` file and optimize it
+- `bf-runner`: read a `.bf` file and JIT it
 
 conventions:
 

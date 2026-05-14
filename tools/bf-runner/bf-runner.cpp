@@ -122,8 +122,6 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  module->dump();
-
   auto optTransformer =
       makeOptimizingTransformer(optLevel, /*sizeLevel=*/0, nullptr);
   ExecutionEngineOptions engineOptions;
@@ -147,6 +145,10 @@ int main(int argc, char **argv) {
     return symbolMap;
   });
 
-  auto error = maybeEngine.get()->invokePacked("main");
+  // 提供返回槽：void 函数会忽略，非 void 函数通过它存返回值
+  int32_t result = 0;
+  void *returnSlot = &result;
+  llvm::SmallVector<void *> args = {returnSlot};
+  auto error = maybeEngine.get()->invokePacked("main", args);
   return error ? 1 : 0;
 }
