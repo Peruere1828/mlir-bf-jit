@@ -2,6 +2,7 @@
 #include "Bf/Dialect/Bf/IR/BfDialect.h"
 #include "Bf/Dialect/Bf/Transforms/Passes.h"
 #include "Bf/Parser/Parser.h"
+#include "Bf/ExecutionEngine/bf_runtime.h"
 
 #include "mlir/Conversion/ArithToLLVM/ArithToLLVM.h"
 #include "mlir/Conversion/ControlFlowToLLVM/ControlFlowToLLVM.h"
@@ -37,17 +38,6 @@ static cl::opt<std::string>
 static llvm::cl::opt<unsigned int>
     optLevel("O", llvm::cl::desc("Optimization level (0 or 2)"),
              llvm::cl::init(0));
-
-// bf 运行时函数
-extern "C" void bf_putchar(int8_t c) {
-  printf("%d", c);
-  fflush(stdout);
-}
-extern "C" int8_t bf_getchar() {
-  int32_t val;
-  scanf("%d", &val);
-  return (int8_t)val;
-}
 
 int main(int argc, char **argv) {
   llvm::InitLLVM y(argc, argv);

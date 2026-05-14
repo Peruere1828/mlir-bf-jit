@@ -4,6 +4,7 @@ set(LIBS
   MLIRBfParser
   MLIRBfTransforms
   MLIRBfToAffine
+  MLIRBfRuntime
   
   # MLIR 标准库
   MLIRIR
