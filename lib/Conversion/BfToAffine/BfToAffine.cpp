@@ -62,23 +62,6 @@ struct CellOpConversion : public OpConversionPattern<BfOp> {
   }
 };
 
-template <typename BfOp>
-struct CellPtrOpConversion : public OpConversionPattern<BfOp> {
-  using OpConversionPattern<BfOp>::OpConversionPattern;
-
-  LogicalResult
-  matchAndRewrite(BfOp op, typename BfOp::Adaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {
-    auto loc = op.getLoc();
-    auto tape = rewriter.create<memref::GetGlobalOp>(
-        loc, getTapeType(op.getContext()), "bf_tape");
-    auto ptr = rewriter.create<affine::AffineLoadOp>(
-        loc, tape, ValueRange{adaptor.getPtr()});
-    rewriter.replaceOp(op, ptr);
-    return success();
-  }
-};
-
 // 指针移动操作，包括 left/right/shift，转换为 affine.apply
 template <typename BfOp>
 struct ShiftConversion : public OpConversionPattern<BfOp> {
@@ -134,6 +117,10 @@ struct WriteConversion : public OpConversionPattern<bf::WriteOp> {
     return success();
   }
 };
+
+// Loop 操作，转换为 scf dialect
+// TODO: 目前只支持 while 循环，没有其它控制流类型
+
 
 struct ConvertBfToAffinePass
     : public impl::ConvertBfToAffineBase<ConvertBfToAffinePass> {

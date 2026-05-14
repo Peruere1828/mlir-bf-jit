@@ -31,9 +31,9 @@ OwningOpRef<ModuleOp> mlir::bf::parseBFSource(MLIRContext *context,
   OwningOpRef<ModuleOp> module = ModuleOp::create(loc);
   builder.setInsertionPointToEnd(module->getBody());
 
-  // 创建int main()函数
+  // 创建 void main() 函数
   auto funcType =
-      FunctionType::get(context, {}, {IntegerType::get(context, 32)});
+      FunctionType::get(context, {}, {});
   auto mainFunc = builder.create<func::FuncOp>(loc, "main", funcType);
 
   Block *entryBlock = mainFunc.addEntryBlock();
@@ -107,8 +107,7 @@ OwningOpRef<ModuleOp> mlir::bf::parseBFSource(MLIRContext *context,
     }
   }
 
-  auto zero = builder.create<arith::ConstantIntOp>(loc, 0, 32);
-  builder.create<func::ReturnOp>(loc, zero->getResult(0));
+  builder.create<func::ReturnOp>(loc);
 
   if (!module) {
     return {};
