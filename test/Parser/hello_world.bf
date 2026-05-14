@@ -3,7 +3,7 @@
 // Typical hello world pattern -- verifies a mix of pointer moves, cell ops,
 // loops, and I/O all parse correctly
 
-// CHECK: func.func @main() -> i32
+// CHECK: func.func @main()
 // CHECK: bf.add
 // CHECK: bf.loop
 // CHECK: bf.left

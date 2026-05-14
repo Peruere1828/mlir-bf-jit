@@ -148,9 +148,28 @@ struct LoopOpConversion : public OpConversionPattern<bf::LoopOp> {
                                                 val, zero);
     rewriter.create<scf::ConditionOp>(loc, cond, ValueRange{currentPtr});
 
-    // After 区域：执行循环体，将 bf.loop body 内联进去
-    rewriter.inlineRegionBefore(op.getRegion(), whileOp.getAfter(),
-                                whileOp.getAfter().end());
+    // After 区域：执行循环体
+    // Body 块可能有参数（parser 生成）或直接用外层 SSA 值（手写 mlir）。
+    {
+      auto &loopBlock = op.getRegion().front();
+      IRMapping mapping;
+      Block *afterBlock = rewriter.createBlock(&whileOp.getAfter());
+      Value iterArg = afterBlock->addArgument(ptrType, loc);
+
+      if (loopBlock.getNumArguments() > 0)
+        mapping.map(loopBlock.getArgument(0), iterArg);
+      mapping.map(op.getPtr(), iterArg);
+
+      for (auto &bodyOp : loopBlock.without_terminator())
+        rewriter.clone(bodyOp, mapping);
+
+      auto yieldOp = cast<bf::YieldOp>(loopBlock.back());
+      Value mappedPtr = mapping.lookupOrNull(yieldOp.getPtr());
+      if (!mappedPtr)
+        mappedPtr = mapping.lookupOrNull(op.getPtr());
+      assert(mappedPtr && "yield ptr not in mapping");
+      rewriter.create<scf::YieldOp>(loc, ValueRange{mappedPtr});
+    }
 
     rewriter.replaceOp(op, whileOp.getResult(0));
     return success();
