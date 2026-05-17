@@ -128,6 +128,7 @@ struct LoopOpConversion : public OpConversionPattern<bf::LoopOp> {
   LogicalResult
   matchAndRewrite(bf::LoopOp op, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
+
     auto loc = op.getLoc();
     auto ptrType = op.getPtr().getType();
 
@@ -148,8 +149,7 @@ struct LoopOpConversion : public OpConversionPattern<bf::LoopOp> {
                                                 val, zero);
     rewriter.create<scf::ConditionOp>(loc, cond, ValueRange{currentPtr});
 
-    // After 区域：执行循环体
-    // Body 块可能有参数（parser 生成）或直接用外层 SSA 值（手写 mlir）。
+    // After 区域：clone body ops + 映射 block arg 到 scf.while after 块参数
     {
       auto &loopBlock = op.getRegion().front();
       IRMapping mapping;
@@ -186,6 +186,20 @@ struct YieldOpConversion : public OpConversionPattern<bf::YieldOp> {
     return success();
   }
 };
+
+static void addAllPatterns(RewritePatternSet &patterns, MLIRContext *ctx) {
+  patterns.add<CellOpConversion<bf::ClearOp>>(ctx);
+  patterns.add<CellOpConversion<bf::AddOp>>(ctx);
+  patterns.add<CellOpConversion<bf::SubOp>>(ctx);
+  patterns.add<CellOpConversion<bf::ModifyOp>>(ctx);
+  patterns.add<ShiftOpConversion<bf::LeftOp>>(ctx);
+  patterns.add<ShiftOpConversion<bf::RightOp>>(ctx);
+  patterns.add<ShiftOpConversion<bf::ShiftOp>>(ctx);
+  patterns.add<ReadOpConversion>(ctx);
+  patterns.add<WriteOpConversion>(ctx);
+  patterns.add<LoopOpConversion>(ctx);
+  patterns.add<YieldOpConversion>(ctx);
+}
 
 struct ConvertBfToAffinePass
     : public impl::ConvertBfToAffineBase<ConvertBfToAffinePass> {
@@ -230,22 +244,31 @@ struct ConvertBfToAffinePass
                            arith::ArithDialect, func::FuncDialect>();
     target.addIllegalDialect<bf::BfDialect>();
 
-    RewritePatternSet patterns(context);
-    patterns.add<CellOpConversion<bf::ClearOp>>(context);
-    patterns.add<CellOpConversion<bf::AddOp>>(context);
-    patterns.add<CellOpConversion<bf::SubOp>>(context);
-    patterns.add<CellOpConversion<bf::ModifyOp>>(context);
-    patterns.add<ShiftOpConversion<bf::LeftOp>>(context);
-    patterns.add<ShiftOpConversion<bf::RightOp>>(context);
-    patterns.add<ShiftOpConversion<bf::ShiftOp>>(context);
-    patterns.add<ReadOpConversion>(context);
-    patterns.add<WriteOpConversion>(context);
-    patterns.add<LoopOpConversion>(context);
-    patterns.add<YieldOpConversion>(context);
+    // Post-order walk: 从最内层 loop 开始转换。
+    // applyPartialConversion 是 top-down 的，outer loop 先于 inner
+    // 入队并因嵌套而失败，不会重试。这里手动按 post-order 逐个转换
+    // loop，保证外层转换时 body 中已无嵌套 loop。
+    SmallVector<bf::LoopOp> loops;
+    module.walk([&](bf::LoopOp loop) { loops.push_back(loop); });
 
-    if (failed(applyPartialConversion(module, target, std::move(patterns)))) {
-      signalPassFailure();
+    RewritePatternSet patterns(context);
+    addAllPatterns(patterns, context);
+    FrozenRewritePatternSet frozen(std::move(patterns));
+
+    // 反向遍历（post-order: 先内层）
+    for (auto it = loops.rbegin(); it != loops.rend(); ++it) {
+      // 只在 body 不含嵌套 loop 才转换；有嵌套表示顺序不对，跳过
+      bool hasNested = false;
+      for (auto &bodyOp : (*it).getRegion().front())
+        if (isa<bf::LoopOp>(bodyOp)) { hasNested = true; break; }
+      if (hasNested)
+        continue;
+      (void)applyPartialConversion(*it, target, frozen);
     }
+
+    // 最后一遍处理所有剩余的 bf ops（包括被跳过的外层 loop）
+    if (failed(applyPartialConversion(module, target, frozen)))
+      signalPassFailure();
   }
 };
 
