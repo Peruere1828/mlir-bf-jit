@@ -85,14 +85,15 @@ int main(int argc, char **argv) {
     // O0 选项: builtin.module(convert-bf-to-affine)
     pm.addPass(bf::createConvertBfToAffine());
   } else if (optLevel == 2) {
-    // O2 选项: builtin.module(func.func(canonicalize, bf-combine,
-    // bf-raise-to-clear, canonicalize), convert-bf-to-affine)
+    // O2 选项: bf-combine → bf-raise-to-clear → canonicalize →
+    //          bf-lower-to-affine-for → convert-bf-to-affine
     OpPassManager &funcPm = pm.nest<func::FuncOp>();
     funcPm.addPass(createCanonicalizerPass());
     funcPm.addPass(bf::createBfCombine());
     funcPm.addPass(bf::createBfRaiseToClear());
     funcPm.addPass(createCanonicalizerPass());
 
+    pm.addPass(bf::createBfLowerToAffineFor());
     pm.addPass(bf::createConvertBfToAffine());
   } else {
     llvm::errs() << "Invalid optimization level: " << optLevel

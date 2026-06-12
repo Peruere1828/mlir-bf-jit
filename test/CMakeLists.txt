@@ -5,5 +5,5 @@ configure_lit_site_cfg(
 
 add_lit_testsuite(check-bf-jit "Running the BF JIT regression tests"
   ${CMAKE_CURRENT_BINARY_DIR}
-  DEPENDS bf-translate bf-opt
+  DEPENDS bf-translate bf-opt bf-runner
 )

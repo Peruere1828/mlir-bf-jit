@@ -1,10 +1,13 @@
 #include "Bf/Conversion/BfToAffine/BfToAffine.h"
 #include "Bf/Dialect/Bf/IR/BfOps.h"
 
+#include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/SCF/IR/SCF.h"
+#include "mlir/IR/AffineExpr.h"
+#include "mlir/IR/AffineMap.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/PatternMatch.h"
@@ -25,10 +28,20 @@ static MemRefType getTapeType(MLIRContext *ctx) {
   return MemRefType::get({30000}, IntegerType::get(ctx, 8));
 }
 
-// 单元格操作，转换为 memref.load/memref.store
-// 用 memref 而非 affine，因为指针可能来自 scf.while（动态值），不符合
-// affine 的 dimension/symbol 约束。后续可通过独立 pass 将符合条件的
-// memref 访问提升为 affine 以启用多面体优化。
+/// Returns true if `op` is directly nested inside a func::FuncOp body
+/// (the enclosing AffineScope). Ops inside scf::WhileOp regions return
+/// false — their index SSA values are not valid dimension/symbol values
+/// in any AffineScope, so affine.load / affine.store / affine.apply
+/// cannot be used there.
+static bool isAtFunctionLevel(Operation *op) {
+  return isa<func::FuncOp>(op->getParentOp());
+}
+
+// 单元格操作：
+//   - 函数体顶层（非 scf.while 内）：转换为 affine.load/affine.store
+//   - scf.while 内：转换为 memref.load/memref.store
+// 因为 scf::WhileOp 无 AffineScope trait，其块参数不是有效的 affine dimension/symbol。
+// 函数参数则可以，因此函数体层级的指针操作可以安全地使用 affine 方言。
 template <typename BfOp>
 struct CellOpConversion : public OpConversionPattern<BfOp> {
   using OpConversionPattern<BfOp>::OpConversionPattern;
@@ -39,11 +52,16 @@ struct CellOpConversion : public OpConversionPattern<BfOp> {
     auto loc = op.getLoc();
     auto tape = rewriter.create<memref::GetGlobalOp>(
         loc, getTapeType(op.getContext()), "bf_tape");
+    bool useAffine = isAtFunctionLevel(op);
 
     if constexpr (std::is_same_v<BfOp, bf::ClearOp>) {
       auto zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 8);
-      rewriter.create<memref::StoreOp>(loc, zero, tape,
-                                       ValueRange{adaptor.getPtr()});
+      if (useAffine)
+        rewriter.create<affine::AffineStoreOp>(loc, zero, tape,
+                                               ValueRange{adaptor.getPtr()});
+      else
+        rewriter.create<memref::StoreOp>(loc, zero, tape,
+                                         ValueRange{adaptor.getPtr()});
     } else {
       int32_t delta = 0;
       if constexpr (std::is_same_v<BfOp, bf::AddOp>)
@@ -52,20 +70,30 @@ struct CellOpConversion : public OpConversionPattern<BfOp> {
         delta = -1;
       else if constexpr (std::is_same_v<BfOp, bf::ModifyOp>)
         delta = op.getDelta();
-      auto val = rewriter.create<memref::LoadOp>(
-          loc, tape, ValueRange{adaptor.getPtr()});
+      Value val;
+      if (useAffine)
+        val = rewriter.create<affine::AffineLoadOp>(
+            loc, tape, ValueRange{adaptor.getPtr()});
+      else
+        val = rewriter.create<memref::LoadOp>(
+            loc, tape, ValueRange{adaptor.getPtr()});
       auto deltaConst = rewriter.create<arith::ConstantIntOp>(loc, delta, 8);
       auto res = rewriter.create<arith::AddIOp>(loc, val, deltaConst);
-      rewriter.create<memref::StoreOp>(loc, res, tape,
-                                       ValueRange{adaptor.getPtr()});
+      if (useAffine)
+        rewriter.create<affine::AffineStoreOp>(loc, res, tape,
+                                               ValueRange{adaptor.getPtr()});
+      else
+        rewriter.create<memref::StoreOp>(loc, res, tape,
+                                         ValueRange{adaptor.getPtr()});
     }
     rewriter.eraseOp(op);
     return success();
   }
 };
 
-// 指针移动操作，转换为 arith.addi
-// 不用 affine.apply，原因同上——指针可能来自 scf.while 块参数。
+// 指针移动操作：
+//   - 函数体顶层：转换为 affine.apply
+//   - scf.while 内：转换为 arith.addi
 template <typename BfOp>
 struct ShiftOpConversion : public OpConversionPattern<BfOp> {
   using OpConversionPattern<BfOp>::OpConversionPattern;
@@ -79,13 +107,24 @@ struct ShiftOpConversion : public OpConversionPattern<BfOp> {
       offset = -1;
     else if constexpr (std::is_same_v<BfOp, bf::ShiftOp>)
       offset = op.getOffset();
-    auto deltaConst = rewriter.create<arith::ConstantIndexOp>(op.getLoc(), offset);
-    rewriter.replaceOpWithNewOp<arith::AddIOp>(op, adaptor.getPtr(), deltaConst);
+
+    if (isAtFunctionLevel(op)) {
+      auto map = AffineMap::get(1, 0,
+          {mlir::getAffineDimExpr(0, op.getContext()) + offset},
+          op.getContext());
+      rewriter.replaceOpWithNewOp<affine::AffineApplyOp>(
+          op, map, ValueRange{adaptor.getPtr()});
+    } else {
+      auto deltaConst = rewriter.create<arith::ConstantIndexOp>(
+          op.getLoc(), offset);
+      rewriter.replaceOpWithNewOp<arith::AddIOp>(
+          op, adaptor.getPtr(), deltaConst);
+    }
     return success();
   }
 };
 
-// IO 操作，转换为 func.call + memref load/store
+// IO 操作，转换为 func.call + (affine|memref) load/store
 struct ReadOpConversion : public OpConversionPattern<bf::ReadOp> {
   using OpConversionPattern::OpConversionPattern;
   LogicalResult
@@ -96,8 +135,12 @@ struct ReadOpConversion : public OpConversionPattern<bf::ReadOp> {
         loc, "bf_getchar", TypeRange{rewriter.getI8Type()}, ValueRange{});
     auto tape = rewriter.create<memref::GetGlobalOp>(
         loc, getTapeType(op.getContext()), "bf_tape");
-    rewriter.create<memref::StoreOp>(loc, funcCall.getResult(0), tape,
-                                     ValueRange{adaptor.getPtr()});
+    if (isAtFunctionLevel(op))
+      rewriter.create<affine::AffineStoreOp>(loc, funcCall.getResult(0), tape,
+                                             ValueRange{adaptor.getPtr()});
+    else
+      rewriter.create<memref::StoreOp>(loc, funcCall.getResult(0), tape,
+                                       ValueRange{adaptor.getPtr()});
     rewriter.eraseOp(op);
     return success();
   }
@@ -111,8 +154,13 @@ struct WriteOpConversion : public OpConversionPattern<bf::WriteOp> {
     auto loc = op.getLoc();
     auto tape = rewriter.create<memref::GetGlobalOp>(
         loc, getTapeType(op.getContext()), "bf_tape");
-    auto val = rewriter.create<memref::LoadOp>(
-        loc, tape, ValueRange{adaptor.getPtr()});
+    Value val;
+    if (isAtFunctionLevel(op))
+      val = rewriter.create<affine::AffineLoadOp>(
+          loc, tape, ValueRange{adaptor.getPtr()});
+    else
+      val = rewriter.create<memref::LoadOp>(
+          loc, tape, ValueRange{adaptor.getPtr()});
     rewriter.create<func::CallOp>(loc, "bf_putchar", TypeRange{},
                                   ValueRange{val});
     rewriter.eraseOp(op);
@@ -211,7 +259,12 @@ struct ConvertBfToAffinePass
     // 初始化纸带
     auto tapeType = MemRefType::get({30000}, builder.getI8Type());
     auto zeroAttr = builder.getZeroAttr(tapeType);
-    if (!module.lookupSymbol("bf_tape")) {
+    bool tapeFound = false;
+    for (auto &op : *module.getBody()) {
+      if (auto g = dyn_cast<memref::GlobalOp>(op))
+        if (g.getSymName() == "bf_tape") { tapeFound = true; break; }
+    }
+    if (!tapeFound) {
       builder.setInsertionPointToStart(module.getBody());
       builder.create<memref::GlobalOp>(
           builder.getUnknownLoc(),
@@ -241,7 +294,8 @@ struct ConvertBfToAffinePass
 
     ConversionTarget target(*context);
     target.addLegalDialect<memref::MemRefDialect, scf::SCFDialect,
-                           arith::ArithDialect, func::FuncDialect>();
+                           arith::ArithDialect, func::FuncDialect,
+                           affine::AffineDialect>();
     target.addIllegalDialect<bf::BfDialect>();
 
     // Post-order walk: 从最内层 loop 开始转换。

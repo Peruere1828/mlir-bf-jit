@@ -10,6 +10,7 @@ def ConvertBfToAffine : Pass<"convert-bf-to-affine", "ModuleOp"> {
     arithmetic ops, and scf.while loops. I/O becomes calls to extern getchar/putchar.
   }];
   let dependentDialects = [
+    "mlir::affine::AffineDialect",
     "mlir::arith::ArithDialect",
     "mlir::memref::MemRefDialect",
     "mlir::scf::SCFDialect",
