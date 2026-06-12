@@ -16,6 +16,7 @@ config.llvm_tools_dir = config.bf_tools_dir
 tool_substitutions = [
     ToolSubst("bf-translate", unresolved="fatal"),
     ToolSubst("bf-opt", unresolved="fatal"),
+    ToolSubst("bf-runner", unresolved="fatal"),
 ]
 
 llvm_config.add_tool_substitutions(tool_substitutions)

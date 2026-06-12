@@ -6,48 +6,47 @@
 
 // CHECK-LABEL: func @left_op
 func.func @left_op(%ptr: index) -> index {
-  // CHECK: arith.addi %arg0
-  // CHECK-SAME: : index
+  // CHECK: affine.apply
   %0 = bf.left %ptr : index -> index
   return %0 : index
 }
 
 //===----------------------------------------------------------------------===//
-// bf.right  →  arith.addi %ptr, 1
+// bf.right  →  affine.apply
 //===----------------------------------------------------------------------===//
 
 // CHECK-LABEL: func @right_op
 func.func @right_op(%ptr: index) -> index {
-  // CHECK: arith.addi
+  // CHECK: affine.apply
   %0 = bf.right %ptr : index -> index
   return %0 : index
 }
 
 //===----------------------------------------------------------------------===//
-// bf.shift  →  arith.addi %ptr, offset
+// bf.shift  →  affine.apply
 //===----------------------------------------------------------------------===//
 
 // CHECK-LABEL: func @shift_positive
 func.func @shift_positive(%ptr: index) -> index {
-  // CHECK: arith.addi
+  // CHECK: affine.apply
   %0 = bf.shift %ptr, 3 : index -> index
   return %0 : index
 }
 
 // CHECK-LABEL: func @shift_negative
 func.func @shift_negative(%ptr: index) -> index {
-  // CHECK: arith.addi
+  // CHECK: affine.apply
   %0 = bf.shift %ptr, -2 : index -> index
   return %0 : index
 }
 
 //===----------------------------------------------------------------------===//
-// No affine ops  — all index arithmetic is arith.addi, not affine.apply
+// Function-level shifts produce affine.apply
 //===----------------------------------------------------------------------===//
 
-// CHECK-LABEL: func @no_affine_ops
-func.func @no_affine_ops(%ptr: index) -> index {
-  // CHECK-NOT: affine.
+// CHECK-LABEL: func @affine_shifts
+func.func @affine_shifts(%ptr: index) -> index {
+  // CHECK: affine.apply
   %0 = bf.left %ptr : index -> index
   return %0 : index
 }

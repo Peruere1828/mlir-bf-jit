@@ -8,7 +8,7 @@
 func.func @read_op(%ptr: index) {
   // CHECK: call @bf_getchar() : () -> i8
   // CHECK: memref.get_global @bf_tape
-  // CHECK: memref.store
+  // CHECK: affine.store
   bf.read %ptr : index
   return
 }
@@ -20,7 +20,7 @@ func.func @read_op(%ptr: index) {
 // CHECK-LABEL: func @write_op
 func.func @write_op(%ptr: index) {
   // CHECK: memref.get_global @bf_tape
-  // CHECK: memref.load
+  // CHECK: affine.load
   // CHECK: call @bf_putchar
   bf.write %ptr : index
   return
@@ -33,8 +33,8 @@ func.func @write_op(%ptr: index) {
 // CHECK-LABEL: func @read_then_write
 func.func @read_then_write(%ptr: index) {
   // CHECK: call @bf_getchar
-  // CHECK: memref.store
-  // CHECK: memref.load
+  // CHECK: affine.store
+  // CHECK: affine.load
   // CHECK: call @bf_putchar
   bf.read %ptr : index
   bf.write %ptr : index

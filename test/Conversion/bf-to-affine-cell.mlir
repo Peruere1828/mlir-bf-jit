@@ -1,56 +1,56 @@
 // RUN: bf-opt --convert-bf-to-affine %s | FileCheck %s
 
 //===----------------------------------------------------------------------===//
-// bf.add  →  memref.load + arith.addi 1 + memref.store
+// bf.add  →  affine.load + arith.addi 1 + affine.store (function-level)
 //===----------------------------------------------------------------------===//
 
 // CHECK-LABEL: func @add_op
 func.func @add_op(%ptr: index) {
   // CHECK: memref.get_global @bf_tape
-  // CHECK: memref.load
+  // CHECK: affine.load
   // CHECK: arith.addi
-  // CHECK: memref.store
+  // CHECK: affine.store
   bf.add %ptr : index
   return
 }
 
 //===----------------------------------------------------------------------===//
-// bf.sub  →  memref.load + arith.addi -1 + memref.store
+// bf.sub  →  affine.load + arith.addi -1 + affine.store
 //===----------------------------------------------------------------------===//
 
 // CHECK-LABEL: func @sub_op
 func.func @sub_op(%ptr: index) {
   // CHECK: memref.get_global @bf_tape
-  // CHECK: memref.load
+  // CHECK: affine.load
   // CHECK: arith.addi
-  // CHECK: memref.store
+  // CHECK: affine.store
   bf.sub %ptr : index
   return
 }
 
 //===----------------------------------------------------------------------===//
-// bf.clear  →  memref.store(c0_i8)  (no load needed)
+// bf.clear  →  affine.store(c0_i8)  (no load needed)
 //===----------------------------------------------------------------------===//
 
 // CHECK-LABEL: func @clear_op
 func.func @clear_op(%ptr: index) {
   // CHECK: memref.get_global @bf_tape
-  // CHECK-NOT: memref.load
+  // CHECK-NOT: affine.load
   // CHECK: arith.constant 0
-  // CHECK: memref.store
+  // CHECK: affine.store
   bf.clear %ptr : index
   return
 }
 
 //===----------------------------------------------------------------------===//
-// bf.modify  →  memref.load + arith.addi delta + memref.store
+// bf.modify  →  affine.load + arith.addi delta + affine.store
 //===----------------------------------------------------------------------===//
 
 // CHECK-LABEL: func @modify_positive
 func.func @modify_positive(%ptr: index) {
-  // CHECK: memref.load
+  // CHECK: affine.load
   // CHECK: arith.addi
-  // CHECK: memref.store
+  // CHECK: affine.store
   bf.modify %ptr, 5 : index
   return
 }
